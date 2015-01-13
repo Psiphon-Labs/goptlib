@@ -52,8 +52,12 @@ func TestAuthInvalidVersion(t *testing.T) {
 
 	// VER = 03, NMETHODS = 01, METHODS = [00]
 	c.writeHex("030100")
-	if _, err := socks5NegotiateAuth(c.toBufio()); err == nil {
+	var err error
+	if _, err = socks5NegotiateAuth(c.toBufio()); err == nil {
 		t.Error("socks5NegotiateAuth(InvalidVersion) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5NegotiateAuth(InvalidVersion) returned incorrect error type or not temporary")
 	}
 }
 
@@ -177,11 +181,15 @@ func TestAuthUnsupported2(t *testing.T) {
 func TestRFC1929InvalidVersion(t *testing.T) {
 	c := new(testReadWriter)
 	var req SocksRequest
+	var err error
 
 	// VER = 03, ULEN = 5, UNAME = "ABCDE", PLEN = 5, PASSWD = "abcde"
 	c.writeHex("03054142434445056162636465")
-	if err := socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
+	if err = socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
 		t.Error("socks5Authenticate(InvalidVersion) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5Authenticate(InvalidVersion) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "0101" {
 		t.Error("socks5Authenticate(InvalidVersion) invalid response:", msg)
@@ -192,11 +200,15 @@ func TestRFC1929InvalidVersion(t *testing.T) {
 func TestRFC1929InvalidUlen(t *testing.T) {
 	c := new(testReadWriter)
 	var req SocksRequest
+	var err error
 
 	// VER = 01, ULEN = 0, UNAME = "", PLEN = 5, PASSWD = "abcde"
 	c.writeHex("0100056162636465")
-	if err := socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
+	if err = socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
 		t.Error("socks5Authenticate(InvalidUlen) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5Authenticate(InvalidUlen) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "0101" {
 		t.Error("socks5Authenticate(InvalidUlen) invalid response:", msg)
@@ -207,11 +219,15 @@ func TestRFC1929InvalidUlen(t *testing.T) {
 func TestRFC1929InvalidPlen(t *testing.T) {
 	c := new(testReadWriter)
 	var req SocksRequest
+	var err error
 
 	// VER = 01, ULEN = 5, UNAME = "ABCDE", PLEN = 0, PASSWD = ""
 	c.writeHex("0105414243444500")
-	if err := socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
+	if err = socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
 		t.Error("socks5Authenticate(InvalidPlen) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5Authenticate(InvalidPlen) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "0101" {
 		t.Error("socks5Authenticate(InvalidPlen) invalid response:", msg)
@@ -222,11 +238,15 @@ func TestRFC1929InvalidPlen(t *testing.T) {
 func TestRFC1929InvalidPTArgs(t *testing.T) {
 	c := new(testReadWriter)
 	var req SocksRequest
+	var err error
 
 	// VER = 01, ULEN = 5, UNAME = "ABCDE", PLEN = 5, PASSWD = "abcde"
 	c.writeHex("01054142434445056162636465")
-	if err := socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
+	if err = socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
 		t.Error("socks5Authenticate(InvalidArgs) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5Authenticate(InvalidArgs) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "0101" {
 		t.Error("socks5Authenticate(InvalidArgs) invalid response:", msg)
@@ -256,11 +276,15 @@ func TestRFC1929Success(t *testing.T) {
 func TestRequestInvalidHdr(t *testing.T) {
 	c := new(testReadWriter)
 	var req SocksRequest
+	var err error
 
 	// VER = 03, CMD = 01, RSV = 00, ATYPE = 01, DST.ADDR = 127.0.0.1, DST.PORT = 9050
 	c.writeHex("030100017f000001235a")
-	if err := socks5ReadCommand(c.toBufio(), &req); err == nil {
+	if err = socks5ReadCommand(c.toBufio(), &req); err == nil {
 		t.Error("socks5ReadCommand(InvalidVer) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5ReadCommand(InvalidVer) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "05010001000000000000" {
 		t.Error("socks5ReadCommand(InvalidVer) invalid response:", msg)
@@ -269,8 +293,11 @@ func TestRequestInvalidHdr(t *testing.T) {
 
 	// VER = 05, CMD = 05, RSV = 00, ATYPE = 01, DST.ADDR = 127.0.0.1, DST.PORT = 9050
 	c.writeHex("050500017f000001235a")
-	if err := socks5ReadCommand(c.toBufio(), &req); err == nil {
+	if err = socks5ReadCommand(c.toBufio(), &req); err == nil {
 		t.Error("socks5ReadCommand(InvalidCmd) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5ReadCommand(InvalidCmd) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "05070001000000000000" {
 		t.Error("socks5ReadCommand(InvalidCmd) invalid response:", msg)
@@ -279,8 +306,11 @@ func TestRequestInvalidHdr(t *testing.T) {
 
 	// VER = 05, CMD = 01, RSV = 30, ATYPE = 01, DST.ADDR = 127.0.0.1, DST.PORT = 9050
 	c.writeHex("050130017f000001235a")
-	if err := socks5ReadCommand(c.toBufio(), &req); err == nil {
+	if err = socks5ReadCommand(c.toBufio(), &req); err == nil {
 		t.Error("socks5ReadCommand(InvalidRsv) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5ReadCommand(InvalidRsv) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "05010001000000000000" {
 		t.Error("socks5ReadCommand(InvalidRsv) invalid response:", msg)
@@ -289,8 +319,11 @@ func TestRequestInvalidHdr(t *testing.T) {
 
 	// VER = 05, CMD = 01, RSV = 01, ATYPE = 05, DST.ADDR = 127.0.0.1, DST.PORT = 9050
 	c.writeHex("050100057f000001235a")
-	if err := socks5ReadCommand(c.toBufio(), &req); err == nil {
+	if err = socks5ReadCommand(c.toBufio(), &req); err == nil {
 		t.Error("socks5ReadCommand(InvalidAtype) succeded")
+	}
+	if e, ok := err.(net.Error); !ok || !e.Temporary() {
+		t.Error("socks5ReadCommand(InvalidAtype) returned incorrect error type or not temporary")
 	}
 	if msg := c.readHex(); msg != "05080001000000000000" {
 		t.Error("socks5Authenticate(InvalidAtype) invalid response:", msg)
@@ -438,6 +471,9 @@ func TestReadSocks4aConnect(t *testing.T) {
 		_, err := readSocks4aConnect(bufio.NewReader(bytes.NewReader(input)))
 		if err == nil {
 			t.Errorf("input %d: %q unexpectedly succeeded", i, input)
+		}
+		if e, ok := err.(net.Error); !ok || !e.Temporary() {
+			t.Error("readSocks4aConnect(badTests) returned incorrect error type or not temporary")
 		}
 	}
 
