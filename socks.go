@@ -410,12 +410,13 @@ func socks5AuthRFC1929(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 		sendErrResp()
 		err = newTemporaryError("socks5AuthRFC1929: failed to parse client parameters: %s", err)
 		return
-	} else {
-		resp := []byte{socksAuthRFC1929Ver, socksAuthRFC1929Success}
-		if _, err = rw.Write(resp[:]); err != nil {
-			err = newTemporaryError("socks5AuthRFC1929: failed to write success response: %s", err)
-			return
-		}
+	}
+
+	// Write success response
+	resp := []byte{socksAuthRFC1929Ver, socksAuthRFC1929Success}
+	if _, err = rw.Write(resp[:]); err != nil {
+		err = newTemporaryError("socks5AuthRFC1929: failed to write success response: %s", err)
+		return
 	}
 	return
 }
