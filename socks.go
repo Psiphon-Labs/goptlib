@@ -196,7 +196,7 @@ func (ln *SocksListener) AcceptSocks() (*SocksConn, error) {
 	err = conn.SetDeadline(time.Now().Add(socksRequestTimeout))
 	if err != nil {
 		conn.Close()
-		err = newTemporaryError("AcceptSocks: conn.SetDeadline() #1 failed: %s", err.Error())
+		err = newTemporaryNetError("AcceptSocks: conn.SetDeadline() #1 failed: %s", err.Error())
 		return nil, err
 	}
 
@@ -205,7 +205,7 @@ func (ln *SocksListener) AcceptSocks() (*SocksConn, error) {
 	// Determine which SOCKS version the client is using and branch on it.
 	if version, err := socksPeekByte(rw.Reader); err != nil {
 		conn.Close()
-		err = newTemporaryError("AcceptSocks: socksPeekByte() failed: %s", err.Error())
+		err = newTemporaryNetError("AcceptSocks: socksPeekByte() failed: %s", err.Error())
 		return nil, err
 	} else if version == socks4Version {
 		conn.socksVersion = socks4Version
@@ -223,14 +223,14 @@ func (ln *SocksListener) AcceptSocks() (*SocksConn, error) {
 		}
 	} else {
 		conn.Close()
-		err = newTemporaryError("AcceptSocks: Illegal SOCKS version: 0x%02x", version)
+		err = newTemporaryNetError("AcceptSocks: Illegal SOCKS version: 0x%02x", version)
 		return nil, err
 	}
 
 	err = conn.SetDeadline(time.Time{})
 	if err != nil {
 		conn.Close()
-		err = newTemporaryError("AcceptSocks: conn.SetDeadline() #2 failed: %s", err.Error())
+		err = newTemporaryNetError("AcceptSocks: conn.SetDeadline() #2 failed: %s", err.Error())
 		return nil, err
 
 	}
@@ -267,21 +267,21 @@ func socks5Handshake(rw *bufio.ReadWriter) (req SocksRequest, err error) {
 func socks5NegotiateAuth(rw *bufio.ReadWriter) (method byte, err error) {
 	// Validate the version.
 	if err = socksReadByteVerify(rw.Reader, "version", socks5Version); err != nil {
-		err = newTemporaryError("socks5NegotiateAuth: %s", err.Error())
+		err = newTemporaryNetError("socks5NegotiateAuth: %s", err.Error())
 		return
 	}
 
 	// Read the number of methods.
 	var nmethods byte
 	if nmethods, err = socksReadByte(rw.Reader); err != nil {
-		err = newTemporaryError("socks5NegotiateAuth: Failed to read nmethods byte: %s", err.Error())
+		err = newTemporaryNetError("socks5NegotiateAuth: Failed to read nmethods byte: %s", err.Error())
 		return
 	}
 
 	// Read the methods.
 	var methods []byte
 	if methods, err = socksReadBytes(rw.Reader, int(nmethods)); err != nil {
-		err = newTemporaryError("socks5NegotiateAuth: Failed to read methods bytes: %s", err.Error())
+		err = newTemporaryNetError("socks5NegotiateAuth: Failed to read methods bytes: %s", err.Error())
 		return
 	}
 
@@ -306,12 +306,12 @@ func socks5NegotiateAuth(rw *bufio.ReadWriter) (method byte, err error) {
 	msg[0] = socks5Version
 	msg[1] = method
 	if _, err = rw.Writer.Write(msg[:]); err != nil {
-		err = newTemporaryError("socks5NegotiateAuth: Failed to write negotiated method: %s", err.Error())
+		err = newTemporaryNetError("socks5NegotiateAuth: Failed to write negotiated method: %s", err.Error())
 		return
 	}
 
 	if err = socksFlushBuffers(rw); err != nil {
-		err = newTemporaryError("socks5NegotiateAuth: Failed to flush buffers: %s", err.Error())
+		err = newTemporaryNetError("socks5NegotiateAuth: Failed to flush buffers: %s", err.Error())
 		return
 	}
 	return
@@ -330,16 +330,16 @@ func socks5Authenticate(rw *bufio.ReadWriter, method byte, req *SocksRequest) (e
 		}
 
 	case socksAuthNoAcceptableMethods:
-		err = newTemporaryError("socks5Authenticate: SOCKS method select had no compatible methods")
+		err = newTemporaryNetError("socks5Authenticate: SOCKS method select had no compatible methods")
 		return
 
 	default:
-		err = newTemporaryError("socks5Authenticate: SOCKS method select picked a unsupported method 0x%02x", method)
+		err = newTemporaryNetError("socks5Authenticate: SOCKS method select picked a unsupported method 0x%02x", method)
 		return
 	}
 
 	if err = socksFlushBuffers(rw); err != nil {
-		err = newTemporaryError("socks5Authenticate: Failed to flush buffers: %s", err)
+		err = newTemporaryNetError("socks5Authenticate: Failed to flush buffers: %s", err)
 		return
 	}
 	return
@@ -361,24 +361,24 @@ func socks5AuthRFC1929(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	// Validate the fixed parts of the command message.
 	if err = socksReadByteVerify(rw.Reader, "auth version", socksAuthRFC1929Ver); err != nil {
 		sendErrResp()
-		err = newTemporaryError("socks5AuthRFC1929: %s", err)
+		err = newTemporaryNetError("socks5AuthRFC1929: %s", err)
 		return
 	}
 
 	// Read the username.
 	var ulen byte
 	if ulen, err = socksReadByte(rw.Reader); err != nil {
-		err = newTemporaryError("socks5AuthRFC1929: Failed to read username length: %s", err)
+		err = newTemporaryNetError("socks5AuthRFC1929: Failed to read username length: %s", err)
 		return
 	}
 	if ulen < 1 {
 		sendErrResp()
-		err = newTemporaryError("socks5AuthRFC1929: username with 0 length")
+		err = newTemporaryNetError("socks5AuthRFC1929: username with 0 length")
 		return
 	}
 	var uname []byte
 	if uname, err = socksReadBytes(rw.Reader, int(ulen)); err != nil {
-		err = newTemporaryError("socks5AuthRFC1929: Failed to read username: %s", err)
+		err = newTemporaryNetError("socks5AuthRFC1929: Failed to read username: %s", err)
 		return
 	}
 	req.Username = string(uname)
@@ -386,17 +386,17 @@ func socks5AuthRFC1929(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	// Read the password.
 	var plen byte
 	if plen, err = socksReadByte(rw.Reader); err != nil {
-		err = newTemporaryError("socks5AuthRFC1929: Failed to read password length: %s", err)
+		err = newTemporaryNetError("socks5AuthRFC1929: Failed to read password length: %s", err)
 		return
 	}
 	if plen < 1 {
 		sendErrResp()
-		err = newTemporaryError("socks5AuthRFC1929: password with 0 length")
+		err = newTemporaryNetError("socks5AuthRFC1929: password with 0 length")
 		return
 	}
 	var passwd []byte
 	if passwd, err = socksReadBytes(rw.Reader, int(plen)); err != nil {
-		err = newTemporaryError("socks5AuthRFC1929: Failed to read password: %s", err)
+		err = newTemporaryNetError("socks5AuthRFC1929: Failed to read password: %s", err)
 		return
 	}
 	if !(plen == 1 && passwd[0] == 0x00) {
@@ -408,14 +408,14 @@ func socks5AuthRFC1929(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	// transport argument string.
 	if req.Args, err = parseClientParameters(req.Username + req.Password); err != nil {
 		sendErrResp()
-		err = newTemporaryError("socks5AuthRFC1929: failed to parse client parameters: %s", err)
+		err = newTemporaryNetError("socks5AuthRFC1929: failed to parse client parameters: %s", err)
 		return
 	}
 
 	// Write success response
 	resp := []byte{socksAuthRFC1929Ver, socksAuthRFC1929Success}
 	if _, err = rw.Write(resp[:]); err != nil {
-		err = newTemporaryError("socks5AuthRFC1929: failed to write success response: %s", err)
+		err = newTemporaryNetError("socks5AuthRFC1929: failed to write success response: %s", err)
 		return
 	}
 	return
@@ -434,17 +434,17 @@ func socks5ReadCommand(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	// Validate the fixed parts of the command message.
 	if err = socksReadByteVerify(rw.Reader, "version", socks5Version); err != nil {
 		sendErrResp(SocksRepGeneralFailure)
-		err = newTemporaryError("socks5ReadCommand: %s", err)
+		err = newTemporaryNetError("socks5ReadCommand: %s", err)
 		return
 	}
 	if err = socksReadByteVerify(rw.Reader, "command", socksCmdConnect); err != nil {
 		sendErrResp(SocksRepCommandNotSupported)
-		err = newTemporaryError("socks5ReadCommand: %s", err)
+		err = newTemporaryNetError("socks5ReadCommand: %s", err)
 		return
 	}
 	if err = socksReadByteVerify(rw.Reader, "reserved", socksReserved); err != nil {
 		sendErrResp(SocksRepGeneralFailure)
-		err = newTemporaryError("socks5ReadCommand: %s", err)
+		err = newTemporaryNetError("socks5ReadCommand: %s", err)
 		return
 	}
 
@@ -453,7 +453,7 @@ func socks5ReadCommand(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	// of rudely closing connections on invalid addresses.
 	var atype byte
 	if atype, err = socksReadByte(rw.Reader); err != nil {
-		err = newTemporaryError("socks5ReadCommand: Failed to read address type: %s", err)
+		err = newTemporaryNetError("socks5ReadCommand: Failed to read address type: %s", err)
 		return
 	}
 	var host string
@@ -461,7 +461,7 @@ func socks5ReadCommand(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	case socksAtypeV4:
 		var addr []byte
 		if addr, err = socksReadBytes(rw.Reader, net.IPv4len); err != nil {
-			err = newTemporaryError("socks5ReadCommand: Failed to read IPv4 address: %s", err)
+			err = newTemporaryNetError("socks5ReadCommand: Failed to read IPv4 address: %s", err)
 			return
 		}
 		host = net.IPv4(addr[0], addr[1], addr[2], addr[3]).String()
@@ -469,16 +469,16 @@ func socks5ReadCommand(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	case socksAtypeDomainName:
 		var alen byte
 		if alen, err = socksReadByte(rw.Reader); err != nil {
-			err = newTemporaryError("socks5ReadCommand: Failed to read domain name length: %s", err)
+			err = newTemporaryNetError("socks5ReadCommand: Failed to read domain name length: %s", err)
 			return
 		}
 		if alen == 0 {
-			err = newTemporaryError("socks5ReadCommand: SOCKS request had domain name with 0 length")
+			err = newTemporaryNetError("socks5ReadCommand: SOCKS request had domain name with 0 length")
 			return
 		}
 		var addr []byte
 		if addr, err = socksReadBytes(rw.Reader, int(alen)); err != nil {
-			err = newTemporaryError("socks5ReadCommand: Failed to read domain name: %s", err)
+			err = newTemporaryNetError("socks5ReadCommand: Failed to read domain name: %s", err)
 			return
 		}
 		host = string(addr)
@@ -486,7 +486,7 @@ func socks5ReadCommand(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 	case socksAtypeV6:
 		var rawAddr []byte
 		if rawAddr, err = socksReadBytes(rw.Reader, net.IPv6len); err != nil {
-			err = newTemporaryError("socks5ReadCommand: Failed to read IPv6 address: %s", err)
+			err = newTemporaryNetError("socks5ReadCommand: Failed to read IPv6 address: %s", err)
 			return
 		}
 		addr := make(net.IP, net.IPv6len)
@@ -495,18 +495,18 @@ func socks5ReadCommand(rw *bufio.ReadWriter, req *SocksRequest) (err error) {
 
 	default:
 		sendErrResp(SocksRepAddressNotSupported)
-		err = newTemporaryError("socks5ReadCommand: SOCKS request had unsupported address type 0x%02x", atype)
+		err = newTemporaryNetError("socks5ReadCommand: SOCKS request had unsupported address type 0x%02x", atype)
 		return
 	}
 	var rawPort []byte
 	if rawPort, err = socksReadBytes(rw.Reader, 2); err != nil {
-		err = newTemporaryError("socks5ReadCommand: Failed to read port number: %s", err)
+		err = newTemporaryNetError("socks5ReadCommand: Failed to read port number: %s", err)
 		return
 	}
 	port := int(rawPort[0])<<8 | int(rawPort[1])<<0
 
 	if err = socksFlushBuffers(rw); err != nil {
-		err = newTemporaryError("socks5ReadCommand: Failed to flush buffers: %s", err)
+		err = newTemporaryNetError("socks5ReadCommand: Failed to flush buffers: %s", err)
 		return
 	}
 
@@ -528,7 +528,7 @@ func sendSocks5Response(w io.Writer, code byte) error {
 	// information, so all zeroes are sent.
 
 	if _, err := w.Write(resp[:]); err != nil {
-		err = newTemporaryError("sendSocks5Response: Failed write response: %s", err)
+		err = newTemporaryNetError("sendSocks5Response: Failed write response: %s", err)
 		return err
 	}
 
@@ -606,26 +606,27 @@ func socksPeekByte(r *bufio.Reader) (b byte, err error) {
 	return
 }
 
-// temporaryError is used for our custom errors. All such errors are "temporary";
-// that is, the listener doesn't need to be torn down when they occur.
-type temporaryError struct {
+// temporaryNetError is used for our custom errors. All such errors are "temporary";
+// that is, the listener doesn't need to be torn down when they occur. They also
+// need to implement the net.Error interface.
+type temporaryNetError struct {
 	error
 }
 
-// Ensure temporaryError implements net.Error
-var _ net.Error = temporaryError{}
+// Ensure temporaryNetError implements net.Error
+var _ net.Error = temporaryNetError{}
 
-func newTemporaryError(errMsg string, args ...interface{}) *temporaryError {
-	return &temporaryError{
+func newTemporaryNetError(errMsg string, args ...interface{}) *temporaryNetError {
+	return &temporaryNetError{
 		error: fmt.Errorf(errMsg, args...),
 	}
 }
 
-func (ste temporaryError) Timeout() bool {
+func (tne temporaryNetError) Timeout() bool {
 	return false
 }
 
-func (ste temporaryError) Temporary() bool {
+func (tne temporaryNetError) Temporary() bool {
 	return true
 }
 
@@ -637,30 +638,30 @@ func (ste temporaryError) Temporary() bool {
 func readSocks4aConnect(r *bufio.Reader) (req SocksRequest, err error) {
 	// Validate the version.
 	if err = socksReadByteVerify(r, "version", socks4Version); err != nil {
-		err = newTemporaryError("readSocks4aConnect: %s", err.Error())
+		err = newTemporaryNetError("readSocks4aConnect: %s", err.Error())
 		return
 	}
 
 	var cmdConnect byte
 	if cmdConnect, err = socksReadByte(r); err != nil {
-		err = newTemporaryError("readSocks4aConnect: Failed to read connect command: %s", err.Error())
+		err = newTemporaryNetError("readSocks4aConnect: Failed to read connect command: %s", err.Error())
 		return
 	}
 	if cmdConnect != socksCmdConnect {
-		err = newTemporaryError("readSocks4aConnect: SOCKS header had command 0x%02x, not 0x%02x", cmdConnect, socksCmdConnect)
+		err = newTemporaryNetError("readSocks4aConnect: SOCKS header had command 0x%02x, not 0x%02x", cmdConnect, socksCmdConnect)
 		return
 	}
 
 	var rawPort []byte
 	if rawPort, err = socksReadBytes(r, 2); err != nil {
-		err = newTemporaryError("readSocks4aConnect: Failed to read port: %s", err.Error())
+		err = newTemporaryNetError("readSocks4aConnect: Failed to read port: %s", err.Error())
 		return
 	}
 	port := int(rawPort[0])<<8 | int(rawPort[1])<<0
 
 	var rawHostIP []byte
 	if rawHostIP, err = socksReadBytes(r, 4); err != nil {
-		err = newTemporaryError("readSocks4aConnect: Failed to read IP address: %s", err.Error())
+		err = newTemporaryNetError("readSocks4aConnect: Failed to read IP address: %s", err.Error())
 		return
 	}
 	// If there's a hostname, it comes after the username, so we'll wait a bit
@@ -669,14 +670,14 @@ func readSocks4aConnect(r *bufio.Reader) (req SocksRequest, err error) {
 	var usernameBytes []byte
 	usernameBytes, err = socksReadBytesUntil(r, '\x00')
 	if err != nil {
-		err = newTemporaryError("readSocks4aConnect: Failed to read username: %s", err.Error())
+		err = newTemporaryNetError("readSocks4aConnect: Failed to read username: %s", err.Error())
 		return
 	}
 	req.Username = string(usernameBytes[:len(usernameBytes)-1])
 
 	req.Args, err = parseClientParameters(req.Username)
 	if err != nil {
-		err = newTemporaryError("readSocks4aConnect: Failed to parse client parameters: %s", err.Error())
+		err = newTemporaryNetError("readSocks4aConnect: Failed to parse client parameters: %s", err.Error())
 		return
 	}
 
@@ -685,7 +686,7 @@ func readSocks4aConnect(r *bufio.Reader) (req SocksRequest, err error) {
 		// If the IP is of the form 0.0.0.x (with x nonzero), then a domain name is provided.
 		var hostBytes []byte
 		if hostBytes, err = socksReadBytesUntil(r, '\x00'); err != nil {
-			err = newTemporaryError("readSocks4aConnect: Failed to read domain name: %s", err.Error())
+			err = newTemporaryNetError("readSocks4aConnect: Failed to read domain name: %s", err.Error())
 			return
 		}
 		host = string(hostBytes[:len(hostBytes)-1])
@@ -696,7 +697,7 @@ func readSocks4aConnect(r *bufio.Reader) (req SocksRequest, err error) {
 	req.Target = fmt.Sprintf("%s:%d", host, port)
 
 	if err = socksFlushReadBuffer(r); err != nil {
-		err = newTemporaryError("readSocks4aConnect: Failed to flush buffers: %s", err.Error())
+		err = newTemporaryNetError("readSocks4aConnect: Failed to flush buffers: %s", err.Error())
 		return
 	}
 
@@ -721,7 +722,7 @@ func sendSocks4aResponse(w io.Writer, code byte, addr *net.TCPAddr) error {
 	}
 
 	if _, err := w.Write(resp[:]); err != nil {
-		err = newTemporaryError("sendSocks4aResponse: Failed to write response: %s", err.Error())
+		err = newTemporaryNetError("sendSocks4aResponse: Failed to write response: %s", err.Error())
 		return err
 	}
 
