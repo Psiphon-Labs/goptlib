@@ -749,7 +749,7 @@ func TestMakeStateDir(t *testing.T) {
 	}
 
 	// Setup the scratch directory.
-	tempDir, err := ioutil.TempDir("", "testMakeStateDir")
+	tempDir, err := ioutil.TempDir(".", "testMakeStateDir")
 	if err != nil {
 		t.Fatalf("ioutil.TempDir failed: %s", err)
 	}
