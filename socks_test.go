@@ -130,12 +130,23 @@ func TestAuthBoth(t *testing.T) {
 	if method, err = socks5NegotiateAuth(c.toBufio()); err != nil {
 		t.Error("socks5NegotiateAuth(Both) failed:", err)
 	}
-	if method != socksAuthUsernamePassword {
+	// [Psiphon]
+	// See comment in socks5NegotiateAuth.
+	/*
+		if method != socksAuthUsernamePassword {
+			t.Error("socks5NegotiateAuth(Both) unexpected method:", method)
+		}
+		if msg := c.readHex(); msg != "0502" {
+			t.Error("socks5NegotiateAuth(Both) invalid response:", msg)
+		}
+	*/
+	if method != socksAuthNoneRequired {
 		t.Error("socks5NegotiateAuth(Both) unexpected method:", method)
 	}
-	if msg := c.readHex(); msg != "0502" {
+	if msg := c.readHex(); msg != "0500" {
 		t.Error("socks5NegotiateAuth(Both) invalid response:", msg)
 	}
+	// [Psiphon]
 }
 
 // TestAuthUnsupported tests auth negotiation with a unsupported method.
@@ -169,12 +180,23 @@ func TestAuthUnsupported2(t *testing.T) {
 	if method, err = socks5NegotiateAuth(c.toBufio()); err != nil {
 		t.Error("socks5NegotiateAuth(Unknown2) failed:", err)
 	}
-	if method != socksAuthUsernamePassword {
+	// [Psiphon]
+	// See comment in socks5NegotiateAuth
+	/*
+		if method != socksAuthUsernamePassword {
+			t.Error("socks5NegotiateAuth(Unknown2) picked unexpected method:", method)
+		}
+		if msg := c.readHex(); msg != "0502" {
+			t.Error("socks5NegotiateAuth(Unknown2) invalid response:", msg)
+		}
+	*/
+	if method != socksAuthNoneRequired {
 		t.Error("socks5NegotiateAuth(Unknown2) picked unexpected method:", method)
 	}
-	if msg := c.readHex(); msg != "0502" {
+	if msg := c.readHex(); msg != "0500" {
 		t.Error("socks5NegotiateAuth(Unknown2) invalid response:", msg)
 	}
+	// [Psiphon]
 }
 
 // TestRFC1929InvalidVersion tests RFC1929 auth with an invalid version.
@@ -240,17 +262,26 @@ func TestRFC1929InvalidPTArgs(t *testing.T) {
 	var req SocksRequest
 	var err error
 
-	// VER = 01, ULEN = 5, UNAME = "ABCDE", PLEN = 5, PASSWD = "abcde"
+	// [Psiphon]
+	// See comment in socks5AuthRFC1929.
+	/*
+		// VER = 01, ULEN = 5, UNAME = "ABCDE", PLEN = 5, PASSWD = "abcde"
+		c.writeHex("01054142434445056162636465")
+		if err = socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
+			t.Error("socks5Authenticate(InvalidArgs) succeded")
+		}
+		if e, ok := err.(net.Error); !ok || !e.Temporary() {
+			t.Error("socks5Authenticate(InvalidArgs) returned incorrect error type or not temporary")
+		}
+		if msg := c.readHex(); msg != "0101" {
+			t.Error("socks5Authenticate(InvalidArgs) invalid response:", msg)
+		}
+	*/
 	c.writeHex("01054142434445056162636465")
-	if err = socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err == nil {
-		t.Error("socks5Authenticate(InvalidArgs) succeded")
+	if err = socks5Authenticate(c.toBufio(), socksAuthUsernamePassword, &req); err != nil {
+		t.Error("socks5Authenticate(InvalidArgs) failed")
 	}
-	if e, ok := err.(net.Error); !ok || !e.Temporary() {
-		t.Error("socks5Authenticate(InvalidArgs) returned incorrect error type or not temporary")
-	}
-	if msg := c.readHex(); msg != "0101" {
-		t.Error("socks5Authenticate(InvalidArgs) invalid response:", msg)
-	}
+	// [Psiphon]
 }
 
 // TestRFC1929Success tests RFC1929 auth with valid pt args.
@@ -266,10 +297,15 @@ func TestRFC1929Success(t *testing.T) {
 	if msg := c.readHex(); msg != "0100" {
 		t.Error("socks5Authenticate(Success) invalid response:", msg)
 	}
-	v, ok := req.Args.Get("key")
-	if v != "value" || !ok {
-		t.Error("RFC1929 k,v parse failure:", v)
-	}
+	// [Psiphon]
+	// See comment in socks5AuthRFC1929.
+	/*
+		v, ok := req.Args.Get("key")
+		if v != "value" || !ok {
+			t.Error("RFC1929 k,v parse failure:", v)
+		}
+	*/
+	// [Psiphon]
 }
 
 // TestRequestInvalidHdr tests SOCKS5 requests with invalid VER/CMD/RSV/ATYPE
