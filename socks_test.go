@@ -451,8 +451,16 @@ func TestReadSocks4aConnect(t *testing.T) {
 		[]byte("\x04\x01\x12\x34\x00\x00\x00\x01key=value\x00"),
 		// missing \x00 after hostname
 		[]byte("\x04\x01\x12\x34\x00\x00\x00\x01key=value\x00hostname"),
-		// bad name–value mapping
-		[]byte("\x04\x01\x12\x34\x00\x00\x00\x01userid\x00hostname\x00"),
+
+		// [Psiphon]
+		// See comment in readSocks4aConnect.
+		/*
+
+			// bad name–value mapping
+			[]byte("\x04\x01\x12\x34\x00\x00\x00\x01userid\x00hostname\x00"),
+		*/
+		// [Psiphon]
+
 		// bad version number
 		[]byte("\x03\x01\x12\x34\x01\x02\x03\x04\x00"),
 		// BIND request
@@ -531,9 +539,14 @@ func TestReadSocks4aConnect(t *testing.T) {
 			t.Errorf("input %d: %q → username %q (expected %q)", i, test.input,
 				req.Username, test.userid)
 		}
-		if req.Args == nil {
-			t.Errorf("input %d: %q → unexpected nil Args from username %q", i, test.input, req.Username)
-		}
+		// [Psiphon]
+		// See comment in readSocks4aConnect.
+		/*
+			if req.Args == nil {
+				t.Errorf("input %d: %q → unexpected nil Args from username %q", i, test.input, req.Username)
+			}
+		*/
+		// [Psiphon]
 	}
 
 	for i, test := range hostnameTests {
@@ -549,9 +562,14 @@ func TestReadSocks4aConnect(t *testing.T) {
 			t.Errorf("input %d: %q → username %q (expected %q)", i, test.input,
 				req.Username, test.userid)
 		}
-		if req.Args == nil {
-			t.Errorf("input %d: %q → unexpected nil Args from username %q", i, test.input, req.Username)
-		}
+		// [Psiphon]
+		// See comment in readSocks4aConnect.
+		/*
+			if req.Args == nil {
+				t.Errorf("input %d: %q → unexpected nil Args from username %q", i, test.input, req.Username)
+			}
+		*/
+		// [Psiphon]
 	}
 }
 
